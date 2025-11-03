@@ -16,6 +16,39 @@ function calculateFormula(formula, formElement) {
       const fieldId = parts[0];
       let value = "";
 
+      // NEW: поддержка суммирования: {sum,fieldA,fieldB,...}
+      if (fieldId === "sum") {
+        let total = 0;
+        parts.slice(1).forEach((fid) => {
+          fid = fid.trim();
+          if (!fid) return;
+          const el = formElement.querySelector(`[name="${fid}"], #${fid}`);
+          if (!el) return;
+          let v = "";
+          if (el.type === "checkbox") {
+            v = el.checked ? "1" : "0";
+          } else if (el.type === "radio") {
+            const checkedRadio = formElement.querySelector(
+              `[name="${fid}"]:checked`
+            );
+            v = checkedRadio ? checkedRadio.value : "";
+          } else {
+            v = el.value || "";
+          }
+
+          // Ищем все числа в тексте (поддержка 123, 12.34, -5, +3, 1,234 не как тысячные)
+          const matchesNums = String(v).match(/[+-]?\d+(?:[.,]\d+)?/g);
+          if (matchesNums) {
+            matchesNums.forEach((numStr) => {
+              const n = parseFloat(numStr.replace(",", "."));
+              if (!isNaN(n)) total += n;
+            });
+          }
+        });
+        result = result.replace(match, total.toString());
+        return; // продолжить к следующему совпадению
+      }
+
       const fieldElement = formElement.querySelector(`[name="${fieldId}"]`);
       if (fieldElement) {
         if (fieldElement.type === "checkbox") {
