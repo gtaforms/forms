@@ -41,6 +41,11 @@ function createDiscordEmbed(formData) {
       return;
     }
 
+    // NEW: если поле помечено excludeFromEmbed — пропускаем его в embed
+    if (field.excludeFromEmbed) {
+      return;
+    }
+
     const value = formData[field.id];
     if (value !== undefined && value !== '') {
       let displayValue = value;
@@ -48,6 +53,11 @@ function createDiscordEmbed(formData) {
 
       if (field.type === 'checkbox') {
         displayValue = value === 'on' ? '✅ Да' : '❌ Нет';
+      }
+
+      // CHANGED: для mention-полей, если они не исключены, показываем реальное значение (введённый ID/упоминание)
+      if (field.type === 'mention') {
+        displayValue = String(value).trim(); // показываем именно то, что ввёл пользователь
       }
 
       if (typeof displayValue === 'string' && displayValue.length > 1024) {
@@ -78,6 +88,19 @@ function createPlainTextMessage(formData) {
       field.customWebhook.enabled &&
       (field.customWebhook.splitLines || field.customWebhook.url)
     ) {
+      return;
+    }
+
+    // NEW: пропускаем поля, отмеченные excludeFromEmbed, также не хотим их в plain text
+    if (field.excludeFromEmbed) return;
+
+    // CHANGED: если это mention — добавляем реальное значение в plain text (если флаг unset)
+    if (field.type === 'mention') {
+      const value = formData[field.id];
+      if (value === undefined || value === '') return;
+      const displayValue = String(value).trim();
+      message += `**${questionIndex}) ${field.label}:** ${displayValue}\n`;
+      questionIndex++;
       return;
     }
 

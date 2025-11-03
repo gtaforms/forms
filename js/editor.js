@@ -97,6 +97,8 @@ function initEditor() {
       placeholder: "",
       required: false,
       icon: "question",
+      // NEW: флаг — если true, поле не будет попадать в embed
+      excludeFromEmbed: false,
     };
     currentConfig.fields.push(newField);
     addFieldToEditor(newField);
@@ -131,6 +133,41 @@ function initEditor() {
 
   // Применяем стиль к полям типа "mention" в превью (если есть)
   applyMentionInputStyling();
+
+  // Раньше: вешали обработчик прямо на форму — другие скрипты могли сработать раньше.
+  // Теперь: глобальный перехват submit на уровне document в capture-фазе.
+  // Это сработает раньше любых слушателей на самой форме и остановит дальнейшую обработку,
+  // затем вызывает наш handleFormSubmit.
+  (function () {
+    const contactForm = document.getElementById("contactForm");
+
+    function onSubmitCapture(e) {
+      // проверяем, что сабмит от нашей формы (включая вложенные элементы)
+      const targetForm = e.target && (e.target.form || e.target.closest && e.target.closest("form")) || null;
+      if (!contactForm) return;
+      // если событие произошло не от нашей формы — игнорируем
+      if (targetForm !== contactForm && !e.target.closest("#contactForm")) return;
+
+      // полностью блокируем дальнейшую обработку (и дефолтное поведение)
+      e.preventDefault();
+      e.stopImmediatePropagation(); // остановит других слушателей на тех же элементах
+      e.stopPropagation();
+
+      // вызываем наш обработчик (он сам делает preventDefault/обработку)
+      if (typeof handleFormSubmit === "function") {
+        try {
+          handleFormSubmit(e);
+        } catch (err) {
+          // небольшая защита — лог и уведомление, если что-то пошло не так
+          console.error("handleFormSubmit error:", err);
+        }
+      }
+    }
+
+    // Навесим глобальный capture-обработчик (true — capture). Этот обработчик выполнится раньше,
+    // чем любые слушатели на самой форме (даже если те были добавлены раньше).
+    document.addEventListener("submit", onSubmitCapture, true);
+  })();
 }
 
 // Функция для добавления поля в редактор
@@ -315,6 +352,16 @@ function addFieldToEditor(field) {
           </label>
         </div>
       </div>
+
+      <!-- NEW: опция — исключить поле из embed (видна в расширенных настройках только для mention полей) -->
+      <div class="field-config-item field-exclude-embed-container" style="grid-column: 1 / -1; display: ${
+        currentConfig.showAdvancedSettings && field.type === "mention" ? "block" : "none"
+      };">
+        <label class="checkbox-setting">
+          <input type="checkbox" class="field-exclude-embed" ${field.excludeFromEmbed ? "checked" : ""} />
+          <span>Не включать в embed</span>
+        </label>
+      </div>
     </div>
   `;
 
@@ -368,6 +415,10 @@ function setupFieldEventHandlers(fieldItem, field) {
   const customWebhookSplitLinesCheckbox = fieldItem.querySelector(
     ".custom-webhook-split-lines-checkbox"
   );
+
+  // NEW: obtain container element for better show/hide control
+  const excludeEmbedCheckbox = fieldItem.querySelector(".field-exclude-embed");
+  const excludeEmbedContainer = fieldItem.querySelector(".field-exclude-embed-container");
 
   function populateConditionalFieldSelect() {
     conditionalFieldSelect.innerHTML =
@@ -585,6 +636,12 @@ function setupFieldEventHandlers(fieldItem, field) {
         newType === "textarea" || newType === "computed" ? "flex" : "none";
     }
 
+    // NEW: показываем/скрываем контейнер excludeEmbed только для mention полей и если включены advanced settings
+    if (excludeEmbedContainer) {
+      excludeEmbedContainer.style.display =
+        (currentConfig.showAdvancedSettings && newType === "mention") ? "block" : "none";
+    }
+
     // Если изменился тип на select/radio или с select/radio, обновляем селекты полей
     const wasSelectOrRadio = oldType === "select" || oldType === "radio";
     const isSelectOrRadio = newType === "select" || newType === "radio";
@@ -729,6 +786,15 @@ function setupFieldEventHandlers(fieldItem, field) {
       field.customWebhook.splitLines = e.target.checked;
       updateConfigFromEditor();
       renderForm();
+    });
+  }
+
+  if (excludeEmbedCheckbox) {
+    excludeEmbedCheckbox.addEventListener("change", (e) => {
+      field.excludeFromEmbed = e.target.checked;
+      updateConfigFromEditor();
+      // Перерисуем превью/форму, чтобы сразу увидеть эффект (если нужно)
+      if (typeof renderForm === "function") renderForm();
     });
   }
 
@@ -1091,6 +1157,16 @@ function updateAdvancedSettingsVisibility(showAdvanced) {
   customWebhookContainers.forEach((container) => {
     container.style.display = displayValue;
   });
+
+  // NEW: исключать из embed-контейнеров — показываем только если поле типа mention
+  const excludeEmbedContainers = document.querySelectorAll(".field-exclude-embed-container");
+  excludeEmbedContainers.forEach((container) => {
+    const fieldItem = container.closest(".field-item");
+    const fid = fieldItem && fieldItem.dataset.fieldId;
+    const cfgField = (currentConfig.fields || []).find((f) => f.id === fid);
+    const shouldShow = showAdvanced && cfgField && cfgField.type === "mention";
+    container.style.display = shouldShow ? "block" : "none";
+  });
 }
 
 // Добавляем функцию, которая находит в форме inputs соответствующие полям типа "mention"
@@ -1173,3 +1249,94 @@ function applyMentionInputStyling() {
     }
   });
 })();
+
+// Новый обработчик отправки формы — поля типа "mention" или с флагом mentionAsPing
+// используются только для content (упоминаний) и НЕ попадают в embed.
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById("contactForm");
+  if (!form || !currentConfig) return;
+
+  const webhookInput = document.getElementById("webhookUrl");
+  const webhookUrl = (webhookInput && webhookInput.value) || currentConfig.webhookUrl;
+  if (!webhookUrl) {
+    showResponse && showResponse("Webhook не указан", "error");
+    return;
+  }
+
+  const contentMentions = [];
+  const embedFields = [];
+
+  currentConfig.fields.forEach((f) => {
+    const el = form.querySelector(`[name="${f.id}"], #${f.id}`);
+    const rawValue = el ? (el.value || "").toString() : "";
+
+    // Если поле типа mention — всегда попытка собрать упоминание в content (нормализуем ID)
+    if (f.type === "mention") {
+      const id = rawValue.replace(/[^\d]/g, "");
+      if (id) contentMentions.push(`<@${id}>`);
+      // Дальше: если поле помечено excludeFromEmbed — пропустить в embed,
+      // иначе — добавляем реальное введённое значение в embed (вместо нейтральной пометки)
+      if (f.excludeFromEmbed) {
+        return; // не добавляем в embed
+      } else {
+        const display = rawValue.trim() !== "" ? rawValue : "—";
+        embedFields.push({
+          name: f.label || f.id,
+          value: display,
+          inline: false,
+        });
+        return;
+      }
+    }
+
+    // Для остальных полей: если установлен флаг excludeFromEmbed — пропускаем
+    if (f.excludeFromEmbed) {
+      return;
+    }
+
+    // Остальные типы полей формируем как обычно в embed
+    const display = rawValue.trim() !== "" ? rawValue : "—";
+    embedFields.push({
+      name: f.label || f.id,
+      value: display,
+      inline: false,
+    });
+  });
+
+  const customMsgEl = document.getElementById("customMessage");
+  const fallbackContent = customMsgEl ? customMsgEl.value : (currentConfig.customMessage || "");
+  const content = contentMentions.join(" ") || fallbackContent || "";
+
+  const embed = {
+    title: (document.getElementById("formTitle") && document.getElementById("formTitle").value) || currentConfig.title || "",
+    description: (document.getElementById("formDescription") && document.getElementById("formDescription").value) || currentConfig.description || "",
+    fields: embedFields,
+    image: currentConfig.embedImageUrl ? { url: currentConfig.embedImageUrl } : undefined
+  };
+
+  const payload = {
+    content: content,
+    embeds: (embed.fields && embed.fields.length) ? [embed] : [],
+    username: (document.getElementById("webhookUsername") && document.getElementById("webhookUsername").value) || currentConfig.webhookUsername,
+    avatar_url: (document.getElementById("webhookAvatarUrl") && document.getElementById("webhookAvatarUrl").value) || currentConfig.webhookAvatarUrl,
+  };
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      showResponse && showResponse("Отправлено успешно", "success");
+      form.reset();
+    } else {
+      const text = await res.text().catch(() => "");
+      showResponse && showResponse("Ошибка при отправке: " + res.status + (text ? " — " + text : ""), "error");
+    }
+  } catch (err) {
+    console.error("handleFormSubmit error:", err);
+    showResponse && showResponse("Ошибка: " + (err && err.message ? err.message : String(err)), "error");
+  }
+}
