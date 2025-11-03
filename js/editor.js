@@ -1115,3 +1115,61 @@ function applyMentionInputStyling() {
     }
   });
 }
+
+// Инструкция: обработчики открытия/закрытия модального окна
+(function(){
+  const instrBtn = document.getElementById("instructionBtn");
+
+  // Получаем модал/кнопку динамически (разметка может быть вставлена после загрузки скриптов)
+  function getInstrModal() {
+    return document.getElementById("instructionModal");
+  }
+  function getInstrClose() {
+    return document.getElementById("instructionClose");
+  }
+
+  function openInstruction() {
+    const instrModal = getInstrModal();
+    if (instrModal) {
+      instrModal.classList.add("show");
+      instrModal.setAttribute("aria-hidden", "false");
+    }
+  }
+  function closeInstruction() {
+    const instrModal = getInstrModal();
+    if (instrModal) {
+      instrModal.classList.remove("show");
+      instrModal.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  // Нажатие на явную кнопку (если она есть)
+  if (instrBtn) {
+    instrBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openInstruction();
+    });
+  }
+
+  // Делегирование кликов по документу: overlay и кнопка закрытия
+  document.addEventListener("click", (e) => {
+    // клик по overlay закроет
+    if (e.target && e.target.matches && e.target.matches(".instruction-overlay")) {
+      closeInstruction();
+      return;
+    }
+    // кнопка закрыть
+    if (e.target && e.target.closest && e.target.closest("#instructionClose")) {
+      closeInstruction();
+      return;
+    }
+  });
+
+  // ESC закрывает
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const instrModal = getInstrModal();
+      if (instrModal && instrModal.classList.contains("show")) closeInstruction();
+    }
+  });
+})();

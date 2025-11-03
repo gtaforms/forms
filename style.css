@@ -61,8 +61,7 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
+  font-family: "Poppins", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(135deg, var(--bg-secondary) 0%, #e0e7ff 100%);
   color: var(--text-primary);
   line-height: 1.6;
@@ -313,6 +312,13 @@ body {
   font-size: 1rem;
   margin-top: 0.5rem;
   text-align: center;
+}
+
+/* Подчёркивание заголовков мелкой правкой веса */
+.editor-header h2,
+.editor-section h3,
+.header h1 {
+  font-weight: 600;
 }
 
 /* Группы формы */
@@ -2239,3 +2245,57 @@ textarea:focus {
 .mention-input:focus {
   border-bottom-color: var(--primary-color);
 }
+
+/* Инструкция: кнопка и модал */
+.instruction-btn{
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  cursor: pointer;
+  font-weight: 600;
+}
+.instruction-btn i{ width:14px; height:14px; display:inline-block; }
+
+.instruction-modal { display: none; position: fixed; inset: 0; z-index: 1300; }
+.instruction-modal.show { display: block; }
+.instruction-modal .instruction-overlay {
+  position:absolute; inset:0; background: rgba(2,6,23,0.6);
+}
+.instruction-modal .instruction-content{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(720px, 92%);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 18px 60px rgba(2,6,23,0.6);
+  border: 1px solid var(--border-color);
+}
+.instruction-close{
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.instruction-body { margin-top: 8px; color: var(--text-primary); line-height:1.5; }
+.instruction-body ol{ padding-left: 1.1rem; margin: 8px 0; }
+.instruction-body code{ background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius:4px; font-family:monospace; }
