@@ -410,7 +410,7 @@ function initFormHandlers() {
   });
 }
 
-// Добавить эту функцию в верхнюю часть form.js (рядом с другими утилитами)
+
 function applyMentionInputStyling() {
   // Если currentConfig отсутствует — ничего не делаем
   if (!window.currentConfig || !Array.isArray(window.currentConfig.fields)) return;

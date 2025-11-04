@@ -131,13 +131,10 @@ function initEditor() {
   generateUrlBtn.addEventListener("click", generateAndCopyShareUrl);
   shortenUrlBtn.addEventListener("click", generateAndCopyShortUrl);
 
-  // Применяем стиль к полям типа "mention" в превью (если есть)
+  // Применяем стиль к полям типа "mention" в превью 
   applyMentionInputStyling();
 
-  // Раньше: вешали обработчик прямо на форму — другие скрипты могли сработать раньше.
-  // Теперь: глобальный перехват submit на уровне document в capture-фазе.
-  // Это сработает раньше любых слушателей на самой форме и остановит дальнейшую обработку,
-  // затем вызывает наш handleFormSubmit.
+  
   (function () {
     const contactForm = document.getElementById("contactForm");
 
@@ -637,7 +634,7 @@ function setupFieldEventHandlers(fieldItem, field) {
         newType === "textarea" || newType === "computed" ? "flex" : "none";
     }
 
-    // NEW: показываем/скрываем контейнер excludeEmbed только для mention полей и если включены advanced settings
+    
     if (excludeEmbedContainer) {
       excludeEmbedContainer.style.display =
         (currentConfig.showAdvancedSettings && newType === "mention") ? "block" : "none";
@@ -748,7 +745,6 @@ function setupFieldEventHandlers(fieldItem, field) {
     renderForm();
   });
 
-  // Обработчик для conditionalValueContainer теперь внутри updateConditionalValueOptions
 
   customWebhookSectionHeader.addEventListener("click", () => {
     const isCurrentlyOpen = field.customWebhook && field.customWebhook.enabled;
@@ -1159,7 +1155,7 @@ function updateAdvancedSettingsVisibility(showAdvanced) {
     container.style.display = displayValue;
   });
 
-  // NEW: исключать из embed-контейнеров — показываем только если поле типа mention
+  // исключать из embed-контейнеров — показываем только если поле типа mention
   const excludeEmbedContainers = document.querySelectorAll(".field-exclude-embed-container");
   excludeEmbedContainers.forEach((container) => {
     const fieldItem = container.closest(".field-item");
@@ -1170,7 +1166,7 @@ function updateAdvancedSettingsVisibility(showAdvanced) {
   });
 }
 
-// Добавляем функцию, которая находит в форме inputs соответствующие полям типа "mention"
+// Функция, которая находит в форме inputs соответствующие полям типа "mention"
 // и выставляет им класс и удобный placeholder, чтобы они выглядели как остальные поля.
 function applyMentionInputStyling() {
   const form = document.getElementById("contactForm");

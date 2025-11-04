@@ -62,4 +62,5 @@ const iconMap = {
   newspaper: "📰",
   question: "❓",
   calculator: "🧮",
+  computer: "💻",
 };

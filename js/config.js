@@ -31,11 +31,11 @@ function createEmptyConfig() {
       },
       {
         id: generateId(),
-        type: "textarea",
-        label: "Сообщение",
+        type: "mention",
+        label: "Discord ID",
         placeholder: "",
         required: true,
-        icon: "comment",
+        icon: "star",
       },
     ],
   };
