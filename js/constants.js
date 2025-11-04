@@ -63,7 +63,4 @@ const iconMap = {
   question: "❓",
   calculator: "🧮",
   computer: "💻",
-  star: "⭐",
-  officer: "👮‍♂️",
-  army: "🪖",
 };
