@@ -134,7 +134,7 @@ function initEditor() {
   // Применяем стиль к полям типа "mention" в превью 
   applyMentionInputStyling();
 
-  /
+  
   (function () {
     const contactForm = document.getElementById("contactForm");
 
