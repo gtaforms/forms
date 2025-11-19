@@ -67,7 +67,7 @@ function createDiscordEmbed(formData) {
       questionIndex++;
       embed.fields.push({
         name: fieldName,
-        value:"```yaml\n" + displayValue + "\n```",
+        value: displayValue,
         inline: false,
       });
     }
