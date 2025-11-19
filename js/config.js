@@ -35,7 +35,7 @@ function createEmptyConfig() {
         label: "Discord ID",
         placeholder: "",
         required: true,
-        icon: "star",
+        icon: "user",
       },
     ],
   };
